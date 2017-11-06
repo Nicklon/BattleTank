@@ -1,25 +1,53 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "TankTrack.h"
+#include "BattleTankGame.h"
 #include "Engine/World.h"
 
+UTankTrack::UTankTrack()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+void UTankTrack::BeginPlay() {
+	OnComponentHit.AddDynamic(this, &UTankTrack::OnHit);
+}
+
+void UTankTrack::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+{
+	//Drive the tracks
+	DriveTrack();
+	//Apply sideways force
+	UTankTrack::ApplySidewaysForce();
+	//Reset Throttle
+	CurrentThrottle = 0;
+}
+
+void UTankTrack::ApplySidewaysForce()
+{
+	//Calculate the slippage speed
+	auto SlippageSpeed = FVector::DotProduct(GetRightVector(), GetComponentVelocity());
+
+	//Workout the required acceleration this frame to correct
+	auto DeltaTime = GetWorld()->GetDeltaSeconds();
+	auto CorrectionAcceleration = -SlippageSpeed / DeltaTime * GetRightVector();
+
+	//Calculate and apply sideways for (F = m a)
+	auto TankRoot = Cast<UStaticMeshComponent>(GetOwner()->GetRootComponent());
+	auto CorrectionForce = (TankRoot->GetMass() * CorrectionAcceleration) / 2;
+
+	TankRoot->AddForce(CorrectionForce);
+}
+
 void UTankTrack::SetThrottle(float Throttle) {
-	float time = GetWorld()->GetTimeSeconds();
-	//float NewSpeed = FMath::Clamp<float>(Throttle, 0, MaxSpeed);
-	FString aux = "LEFT";
 
-	if (!left) {
-		aux = "RIGHT";
-	}
+	CurrentThrottle = FMath::Clamp<float>(CurrentThrottle + Throttle, -1, 1);
+}
 
-	auto ForceApplied = GetForwardVector() * Throttle * TrackMaxDrivingForce;
+void UTankTrack::DriveTrack()
+{
+	auto ForceApplied = GetForwardVector() * CurrentThrottle * TrackMaxDrivingForce;
 	auto ForceLocation = GetComponentLocation();
 	auto TankRoot = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
 	TankRoot->AddForceAtLocation(ForceApplied, ForceLocation);
 
-
-	//UE_LOG(LogTemp, Warning, TEXT("%f : %s Track movin at speed --> %f"), time, *aux, Throttle);
-
 }
-
-

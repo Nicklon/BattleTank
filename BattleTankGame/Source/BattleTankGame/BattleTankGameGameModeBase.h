@@ -6,9 +6,6 @@
 #include "GameFramework/GameModeBase.h"
 #include "BattleTankGameGameModeBase.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class BATTLETANKGAME_API ABattleTankGameGameModeBase : public AGameModeBase
 {

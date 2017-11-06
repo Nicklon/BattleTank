@@ -11,15 +11,27 @@ UCLASS(meta = (BlueprintSpawnableComponent))
 class BATTLETANKGAME_API UTankTrack : public UStaticMeshComponent
 {
 	GENERATED_BODY()
-
 public:
 	UFUNCTION(BlueprintCallable,Category = Input)
 	void SetThrottle(float Throttle);
 
 private:
+
+	UTankTrack();
+
+	virtual void BeginPlay() override;
+
+	void ApplySidewaysForce();
+	void DriveTrack();
+
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+
 	UPROPERTY(EditDefaultsOnly, Category = Setup)
-	float TrackMaxDrivingForce = 4000000000000000; //Units in Newtons
+	float TrackMaxDrivingForce = 400000; //Units in Newtons
 
 	UPROPERTY(EditDefaultsOnly, Category = Setup)
 	bool left;
+
+	float CurrentThrottle = 0;
 };

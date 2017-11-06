@@ -2,19 +2,11 @@
 
 #include "TankTurret.h"
 #include "BattleTankGame.h"
-#include "Engine/World.h"
 
-void UTankTurret::Rotate(float RelativeSpeed) {
-	//Move the barrel the right amount this frame
-	//Given a a max elevation speed, and the frame time
-	RelativeSpeed = FMath::Clamp<float>(RelativeSpeed, -1, 1);
+void UTankTurret::Rotate(float RelativeSpeed)
+{
+	RelativeSpeed = FMath::Clamp<float>(RelativeSpeed, -1, +1);
 	auto RotationChange = RelativeSpeed * MaxDegreesPerSecond * GetWorld()->DeltaTimeSeconds;
-	auto NewRotation = RelativeRotation.Yaw + RotationChange;
-
-	SetRelativeRotation(FRotator(0, NewRotation, 0));
+	auto Rotation = RelativeRotation.Yaw + RotationChange;
+	SetRelativeRotation(FRotator(0, Rotation, 0));
 }
-
-
-
-
-

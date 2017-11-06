@@ -2,25 +2,27 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AIController.h"
 #include "TankAIController.generated.h"
 
 class ATank;
-/**
- * 
- */
+
 UCLASS()
 class BATTLETANKGAME_API ATankAIController : public AAIController
 {
 	GENERATED_BODY()
-	
-public:
 
+protected:
+	UPROPERTY(EditAnywhere, Category = "Setup")
+	float AcceptanceRadius = 3000;
+
+private:
 	virtual void BeginPlay() override;
 
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaSeconds) override;
 
-	float AcceptanceRadius = 3000;
-	
+	// How close can the AI tank get
+
+
 };
+

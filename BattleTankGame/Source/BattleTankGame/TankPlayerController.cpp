@@ -2,24 +2,17 @@
 
 #include "TankPlayerController.h"
 #include "BattleTankGame.h"
-#include "Tank.h"
+#include "TankAimingComponent.h"
 #include "Engine/World.h"
 
 
-void ATankPlayerController::BeginPlay() 
+void ATankPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ATank* ControlledTank = ATankPlayerController::GetControlledTank();
-
-	if (ControlledTank == nullptr) {
-		UE_LOG(LogTemp, Warning, TEXT("PlayerController Not Possesing Tank"));
-	}
-	else {
-		UE_LOG(LogTemp, Warning, TEXT("PlayerController possesing: %s"), *(ControlledTank->GetName()));
-	}
+	auto AimingComponent = GetPawn()->FindComponentByClass<UTankAimingComponent>();
+	if (!ensure(AimingComponent)) { return; }
+	FoundAimingComponent(AimingComponent);
 }
-
 
 void ATankPlayerController::Tick(float DeltaTime)
 {
@@ -27,43 +20,45 @@ void ATankPlayerController::Tick(float DeltaTime)
 	AimTowardsCrosshair();
 }
 
-ATank* ATankPlayerController::GetControlledTank() const
+void ATankPlayerController::AimTowardsCrosshair()
 {
-	return Cast<ATank>(GetPawn());
+	if (!GetPawn()) { return; }
+	auto AimingComponent = GetPawn()->FindComponentByClass<UTankAimingComponent>();
+	if (!ensure(AimingComponent)) { return; }
 
-}
-
-void ATankPlayerController::AimTowardsCrosshair(){
-	if (!GetControlledTank()) { return; }
-	FVector HitLocation;
-
-	if (GetSightRayHitLocation(HitLocation)) {
-		GetControlledTank()->AimAt(HitLocation);
+	FVector HitLocation; // Out parameter
+	bool bGotHitLocation = GetSightRayHitLocation(HitLocation);
+	UE_LOG(LogTemp, Warning, TEXT("%i"), bGotHitLocation);
+	if (bGotHitLocation) // Has "side-effect", is going to line trace
+	{
+		AimingComponent->AimAt(HitLocation);
 	}
 }
 
-bool ATankPlayerController::GetSightRayHitLocation(FVector &Out_HitLocation) const {
-
+// Get world location of linetrace through crosshair, true if hits landscape
+bool ATankPlayerController::GetSightRayHitLocation(FVector& HitLocation) const
+{
+	// Find the crosshair position in pixel coordinates
 	int32 ViewportSizeX, ViewportSizeY;
 	GetViewportSize(ViewportSizeX, ViewportSizeY);
+	auto ScreenLocation = FVector2D(ViewportSizeX * CrosshairXLocation, ViewportSizeY * CrosshairYLocation);
 
-	FVector2D ScreenLocation = FVector2D(ViewportSizeX * CrossHairXLocation, ViewportSizeY * CrossHairYLocation);
+	// "De-project" the screen position of the crosshair to a world direction
 	FVector LookDirection;
-
-	if(GetLookDirection(ScreenLocation, LookDirection)) {
-		return GetLookVectorHitLocation(LookDirection, Out_HitLocation);
+	if (GetLookDirection(ScreenLocation, LookDirection))
+	{
+		// Line-trace along that LookDirection, and see what we hit (up to max range)
+		return GetLookVectorHitLocation(LookDirection, HitLocation);
 	}
 
 	return false;
 }
 
-bool ATankPlayerController::GetLookVectorHitLocation(FVector LookDirection, FVector& OUT_HitLocation) const {
-
+bool ATankPlayerController::GetLookVectorHitLocation(FVector LookDirection, FVector& HitLocation) const
+{
 	FHitResult HitResult;
-	FVector StartLocation=PlayerCameraManager->GetCameraLocation();
-	FVector EndLocation = StartLocation+(LookDirection*LineTraceRange);
-
-
+	auto StartLocation = PlayerCameraManager->GetCameraLocation();
+	auto EndLocation = StartLocation + (LookDirection * LineTraceRange);
 	if (GetWorld()->LineTraceSingleByChannel(
 		HitResult,
 		StartLocation,
@@ -71,26 +66,20 @@ bool ATankPlayerController::GetLookVectorHitLocation(FVector LookDirection, FVec
 		ECollisionChannel::ECC_Visibility)
 		)
 	{
-		OUT_HitLocation = HitResult.Location;
+		HitLocation = HitResult.Location;
 		return true;
 	}
-	else {
-		OUT_HitLocation = FVector(0);
-		return false;
-	}
-
+	HitLocation = FVector(0);
+	return false; // Line trace didn't succeed
 }
 
-bool ATankPlayerController::GetLookDirection(FVector2D ScreenLocation, FVector& OUT_LookDirection) const {
-
-	FVector CameraWorldLocation;
-
-	return DeprojectScreenPositionToWorld(
+bool ATankPlayerController::GetLookDirection(FVector2D ScreenLocation, FVector& LookDirection) const
+{
+	FVector CameraWorldLocation; // To be discarded
+	return  DeprojectScreenPositionToWorld(
 		ScreenLocation.X,
 		ScreenLocation.Y,
 		CameraWorldLocation,
-		OUT_LookDirection);
+		LookDirection
+	);
 }
-
-
-
