@@ -20,6 +20,21 @@ void ATankPlayerController::Tick(float DeltaTime)
 	AimTowardsCrosshair();
 }
 
+void ATankPlayerController::SetPawn(APawn* InPawn) {
+	Super::SetPawn(InPawn);
+
+	if (InPawn) {
+		auto PossessedTank = Cast<ATank>(InPawn);
+		if (!ensure(PossessedTank)) { return; }
+		PossessedTank->OnDeath.AddUniqueDynamic(this, &ATankPlayerController::OnPossedTankDeath);
+		//Subscribe local method to the tanks 
+	}
+}
+
+void ATankPlayerController::OnPossedTankDeath() {
+	StartSpectatingOnly();
+}
+
 void ATankPlayerController::AimTowardsCrosshair()
 {
 	if (!GetPawn()) { return; }
@@ -28,7 +43,6 @@ void ATankPlayerController::AimTowardsCrosshair()
 
 	FVector HitLocation; // Out parameter
 	bool bGotHitLocation = GetSightRayHitLocation(HitLocation);
-	UE_LOG(LogTemp, Warning, TEXT("%i"), bGotHitLocation);
 	if (bGotHitLocation) // Has "side-effect", is going to line trace
 	{
 		AimingComponent->AimAt(HitLocation);
@@ -63,7 +77,7 @@ bool ATankPlayerController::GetLookVectorHitLocation(FVector LookDirection, FVec
 		HitResult,
 		StartLocation,
 		EndLocation,
-		ECollisionChannel::ECC_Visibility)
+		ECollisionChannel::ECC_Camera)
 		)
 	{
 		HitLocation = HitResult.Location;
